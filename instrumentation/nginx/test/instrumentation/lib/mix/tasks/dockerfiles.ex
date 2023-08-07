@@ -162,6 +162,8 @@ defmodule Mix.Tasks.Dockerfiles do
 
   defp build_steps(_) do
     """
+    RUN mkdir -p /usr/lib/nginx/modules
+
     RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b #{@grpc_version} \\
       https://github.com/grpc/grpc \\
       && cd grpc \\
