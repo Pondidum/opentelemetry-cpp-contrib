@@ -20,12 +20,16 @@ jobs:
     strategy:
       matrix:
         nginx: [ "nginx:1.25.1" ]
+
     steps:
       - name: checkout otel nginx
         uses: actions/checkout@v3
+
       - name: setup
         run: |
           sudo ./instrumentation/nginx/ci/setup_environment.sh
+
+
       - name: generate dockerfile
         run: |
           cd instrumentation/nginx/test/instrumentation
@@ -44,6 +48,7 @@ jobs:
         uses: docker/setup-buildx-action@master
         with:
           install: true
+
       - name: cache docker layers
         uses: actions/cache@v3
         with:
@@ -51,6 +56,7 @@ jobs:
           key: nginx-${{ github.sha }}
           restore-keys: |
             nginx
+
       - name: build express backend docker
         run: |
           cd instrumentation/nginx
@@ -60,6 +66,7 @@ jobs:
             --cache-to type=local,dest=/tmp/buildx-cache/express-new \
             --load \
             test/backend/simple_express
+
       - name: build nginx docker
         run: |
           cd instrumentation/nginx
@@ -70,16 +77,19 @@ jobs:
             --cache-to type=local,dest=/tmp/buildx-cache/nginx-new \
             --load \
             .
+
       - name: update cache
         run: |
           rm -rf /tmp/buildx-cache/express
           rm -rf /tmp/buildx-cache/nginx
           mv /tmp/buildx-cache/express-new /tmp/buildx-cache/express
           mv /tmp/buildx-cache/nginx-new /tmp/buildx-cache/nginx
+
       - name: run tests
         run: |
           cd instrumentation/nginx/test/instrumentation
           mix test
+
       - name: copy artifacts
         id: artifacts
         run: |
@@ -91,14 +101,10 @@ jobs:
           --cache-from type=local,src=/tmp/.buildx-cache \
           --output type=local,dest=/tmp/otel_ngx .
 
-      - name: upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: otel_ngx_module.so
-          path: /tmp/otel_ngx/otel_ngx_module.so
+          echo "artifact_name=otel_ngx_module-${{ matrix.nginx }}.so" | sed 's/:/-/g' >> ${GITHUB_ENV}
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: otel_ngx_module-${{ matrix.nginx }}.so
+          name: ${{ env.artifact_name }}.so
           path: /tmp/otel_ngx/otel_ngx_module.so
