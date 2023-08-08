@@ -19,9 +19,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        # os: [ubuntu-20.04, ubuntu-18.04, debian-10.11, debian-11.3]
-        os: [nginx-1.25.1]
-        nginx-rel: [mainline, stable]
+        nginx: [ "nginx:1.25.1" ]
     steps:
       - name: checkout otel nginx
         uses: actions/checkout@v3
@@ -34,12 +32,12 @@ jobs:
           mix local.hex --force --if-missing
           mix local.rebar --force --if-missing
           mix deps.get
-          mix dockerfiles .. ${{ matrix.os }}:${{ matrix.nginx-rel }}
+
 
       - name: print
         run: |
           cd instrumentation/nginx
-          cat test/Dockerfile.${{ matrix.os }}.${{ matrix.nginx-rel }}
+          cat test/Dockerfile
 
       - name: setup buildx
         id: buildx
@@ -50,9 +48,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/buildx-cache/
-          key: nginx-${{ matrix.os }}-${{ matrix.nginx-rel }}-${{ github.sha }}
+          key: nginx-${{ github.sha }}
           restore-keys: |
-            nginx-${{ matrix.os }}-${{ matrix.nginx-rel }}
+            nginx
       - name: build express backend docker
         run: |
           cd instrumentation/nginx
@@ -66,8 +64,8 @@ jobs:
         run: |
           cd instrumentation/nginx
           docker buildx build -t otel-nginx-test/nginx \
-            --build-arg image=$(echo ${{ matrix.os }} | sed s/-/:/) \
-            -f test/Dockerfile.${{ matrix.os }}.${{ matrix.nginx-rel }} \
+            --build-arg "image=${{ matrix.nginx }}" \
+            -f test/Dockerfile \
             --cache-from type=local,src=/tmp/buildx-cache/nginx \
             --cache-to type=local,dest=/tmp/buildx-cache/nginx-new \
             --load \
@@ -87,12 +85,20 @@ jobs:
         run: |
           cd instrumentation/nginx
           mkdir -p /tmp/otel_ngx/
-          docker buildx build -f test/Dockerfile.${{ matrix.os }}.${{ matrix.nginx-rel}} \
+          docker buildx build -f test/Dockerfile \
+            --build-arg "image=${{ matrix.nginx }}" \
           --target export \
           --cache-from type=local,src=/tmp/.buildx-cache \
           --output type=local,dest=/tmp/otel_ngx .
+
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: otel_ngx_module-${{ matrix.os }}-${{ matrix.nginx-rel }}.so
+          name: otel_ngx_module.so
+          path: /tmp/otel_ngx/otel_ngx_module.so
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: otel_ngx_module-${{ matrix.nginx }}.so
           path: /tmp/otel_ngx/otel_ngx_module.so
