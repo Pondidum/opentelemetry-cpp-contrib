@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         # os: [ubuntu-20.04, ubuntu-18.04, debian-10.11, debian-11.3]
-        os: [debian-12.1]
+        os: [nginx-1.25.1]
         nginx-rel: [mainline, stable]
     steps:
       - name: checkout otel nginx

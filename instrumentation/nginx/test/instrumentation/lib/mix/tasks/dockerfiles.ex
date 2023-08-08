@@ -34,7 +34,6 @@ defmodule Mix.Tasks.Dockerfiles do
          header(job),
          apt_install_base_pkgs(job),
          custom_cmake(job),
-         custom_nginx(job),
          apt_install_custom_pkgs(job),
          build_steps(job)
        ],
@@ -121,13 +120,13 @@ defmodule Mix.Tasks.Dockerfiles do
   defp custom_nginx(_), do: ""
 
   defp custom_packages_for_version(%{os: "ubuntu", nginx: "stable", version_major: 18}) do
-    ["cmake", "nginx"]
+    ["cmake"]
   end
   defp custom_packages_for_version(%{version_major: ver_major}) when ver_major < 20, do: ["cmake"]
   defp custom_packages_for_version(_), do: []
 
   defp custom_packages(%{os: "debian"}) do
-    ["cmake", "nginx"]
+    ["cmake"]
   end
   defp custom_packages(%{nginx: "mainline"} = job) do
     ["nginx" | custom_packages_for_version(job)]
